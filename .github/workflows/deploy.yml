@@ -1,0 +1,24 @@
+name: "Shuttle.rs Deploy to Production"
+on:
+  push:
+    branches:
+      - "master"
+jobs:
+  deploy:
+    runs-on: "ubuntu-latest"
+    environment: "production"
+    steps:
+      - name: "Checkout repo"
+        uses: actions/checkout@v3
+      - name: "Install shuttle.rs CLI"
+        run: |
+          curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
+          cargo binstall -y cargo-shuttle
+      - name: "Log into shuttle.rs"
+        run: |
+          cargo shuttle login --api-key ${{ secrets.SHUTTLE_API_KEY }}
+      - name: "Set up cargo cache"
+        uses: Swatinem/rust-cache@v2
+      - name: "Deploy to shuttle.rs"
+        run: |
+          cargo shuttle deploy

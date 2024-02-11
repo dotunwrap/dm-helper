@@ -1,5 +1,21 @@
-/target
+# Get rid of target and debug builds
+target/
+debug/
+
+# Ignore Cargo.lock
+Cargo.lock
+
+# Ignore rustfmt backups
+**/*.rs.bk
+
+# MSVC Windows builds of rustc will generate debug files. Ignore them.
+*.pdb
+
+# Ignore secrets
 .env
 Secrets.dev.toml
 Secrets.toml
-src/data/*
+.*/
+
+# Allows .github folder
+!.github/
