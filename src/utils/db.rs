@@ -1,13 +1,10 @@
 use crate::Context;
 use mysql::*;
 
-pub fn init_dnd_db() -> Pool {
+pub fn init_dnd_db(database_url: &str) -> Pool {
     Pool::new(
-        OptsBuilder::from_opts(
-            Opts::from_url(&std::env::var("DND_DATABASE_URL").expect("Database URL not found"))
-                .expect("Could not parse database URL"),
-        )
-        .ssl_opts(SslOpts::default()),
+        OptsBuilder::from_opts(Opts::from_url(database_url).expect("Could not parse database URL"))
+            .ssl_opts(SslOpts::default()),
     )
     .expect("Could not connect to database")
 }

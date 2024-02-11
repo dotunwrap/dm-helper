@@ -11,37 +11,9 @@ use poise::serenity_prelude as serenity;
 
 pub mod response;
 
-struct Session {
-    _id: i64,
-    _campaign: campaign::Campaign,
-    _responses: Vec<response::Response>,
-    _author_id: String,
-    _status: i64,
-    _created_date: String,
-    _scheduled_date: String,
-}
+struct Session {}
 
 impl Session {
-    fn _new(
-        _id: i64,
-        _campaign: campaign::Campaign,
-        _responses: Vec<response::Response>,
-        _author_id: String,
-        _status: i64,
-        _created_date: String,
-        _scheduled_date: String,
-    ) -> Self {
-        Self {
-            _id,
-            _campaign,
-            _responses,
-            _author_id,
-            _status,
-            _created_date,
-            _scheduled_date,
-        }
-    }
-
     fn translate_status(status: i64) -> String {
         match status {
             0 => String::from("Pending"),

@@ -1,3 +1,5 @@
 /target
 .env
+Secrets.dev.toml
+Secrets.toml
 src/data/*

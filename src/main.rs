@@ -1,8 +1,10 @@
 #![warn(clippy::str_to_string)]
 
 use crate::commands::*;
-use dotenv::dotenv;
+use anyhow::anyhow;
 use poise::serenity_prelude as serenity;
+use shuttle_secrets::SecretStore;
+use shuttle_serenity::ShuttleSerenity;
 
 pub mod commands;
 pub mod responses;
@@ -56,21 +58,33 @@ async fn on_event(
     Ok(())
 }
 
-#[tokio::main]
-async fn main() {
-    dotenv().ok();
+#[shuttle_runtime::main]
+pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
+    let token = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
+        token
+    } else {
+        return Err(anyhow!("DISCORD_TOKEN not found in secret store").into());
+    };
+
+    let database_url = if let Some(url) = secret_store.get("DATABASE_URL") {
+        url
+    } else {
+        return Err(anyhow!("DATABASE_URL not found in secret store").into());
+    };
+
+    let commands = vec![
+        help::help(),
+        settings::settings(),
+        dnd::campaign::session::session(),
+        dnd::dice::roll(),
+    ];
 
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
             event_handler: |_ctx, event, _framework, _data| {
                 Box::pin(on_event(_ctx, event, _framework, _data))
             },
-            commands: vec![
-                help::help(),
-                settings::settings(),
-                dnd::campaign::session::session(),
-                dnd::dice::roll(),
-            ],
+            commands,
             prefix_options: poise::PrefixFrameworkOptions {
                 prefix: Some("!".into()),
                 edit_tracker: Some(Into::into(poise::EditTracker::for_timespan(
@@ -95,23 +109,24 @@ async fn main() {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
-                    db: utils::db::init_dnd_db(),
-                    dnd_role: serenity::RoleId::from(901464574530814002),
+                    db: utils::db::init_dnd_db(&database_url),
+                    dnd_role: serenity::RoleId::from(901464574530814002), // TODO: Change this from
+                                                                          // a harcoded role from
+                                                                          // the str::from_utf8
+                                                                          // server
                 })
             })
         })
         .build();
 
-    serenity::ClientBuilder::new(
-        std::env::var("DISCORD_TOKEN").expect("Missing Discord token"),
-        serenity::GatewayIntents::non_privileged()
-            | serenity::GatewayIntents::MESSAGE_CONTENT
-            | serenity::GatewayIntents::GUILD_MEMBERS,
-    )
-    .framework(framework)
-    .await
-    .unwrap()
-    .start()
-    .await
-    .unwrap();
+    let intents = serenity::GatewayIntents::non_privileged()
+        | serenity::GatewayIntents::MESSAGE_CONTENT
+        | serenity::GatewayIntents::GUILD_MEMBERS;
+
+    let client = serenity::ClientBuilder::new(&token, intents)
+        .framework(framework)
+        .await
+        .map_err(shuttle_runtime::CustomError::new)?;
+
+    Ok(client.into())
 }

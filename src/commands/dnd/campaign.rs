@@ -6,24 +6,6 @@ use mysql::*;
 
 pub mod session;
 
-pub struct Campaign {
-    _id: i64,
-    _dm_id: String,
-    _name: String,
-    _description: String,
-}
-
-impl Campaign {
-    fn _new(_id: i64, _dm_id: String, _name: String, _description: String) -> Self {
-        Self {
-            _id,
-            _dm_id,
-            _name,
-            _description,
-        }
-    }
-}
-
 pub async fn autocomplete_campaign<'a>(
     ctx: Context<'_>,
     partial: &'a str,
