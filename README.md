@@ -20,10 +20,12 @@ You can then fill out the values in the `Secrets.dev.toml` file.
 ```sql
 CREATE TABLE `campaigns` (
     `id` int unsigned NOT NULL AUTO_INCREMENT,
+    `guild_id` varchar(255) NOT NULL,
     `dm_id` varchar(255) DEFAULT NULL,
     `name` text,
     `description` text,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    KEY `guild_id_index` (`guild_id`)
 );
 
 CREATE TABLE `characters` (

@@ -122,14 +122,24 @@ pub async fn list(
     campaign: Option<String>,
 ) -> Result<(), Error> {
     ctx.defer().await?;
+    let guild_id = if let Some(guild_id) = ctx.guild_id() {
+        guild_id
+    } else {
+        serenity::GuildId::default()
+    };
+
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];
-    let mut where_clause = String::from("WHERE scheduled_date > NOW()");
-    let mut params = Params::Empty;
+    let mut where_clause =
+        String::from("WHERE s.scheduled_date > NOW() AND c.guild_id = :guild_id");
+    let mut params = params! {
+        "guild_id" => guild_id.get()
+    };
 
     match campaign {
         Some(campaign) => {
-            where_clause.push_str(" AND campaign_id = :campaign");
+            where_clause.push_str(" AND s.campaign_id = :campaign");
             params = params! {
+                "guild_id" => guild_id.get(),
                 campaign
             };
         }
@@ -207,10 +217,16 @@ pub async fn list(
 }
 
 pub fn does_session_exist(ctx: Context<'_>, session_id: i64) -> bool {
+    let guild_id = if let Some(guild_id) = ctx.guild_id() {
+        guild_id
+    } else {
+        serenity::GuildId::default()
+    };
+
     db::get_db_conn(ctx)
         .exec_first::<i64, _, _>(
-            "SELECT id FROM sessions WHERE id = :session_id",
-            params! { session_id },
+            "SELECT id FROM sessions WHERE id = :session_id AND campaign_id IN (SELECT campaign_id FROM campaigns WHERE guild_id = :guild_id)",
+            params! { session_id, "guild_id" => guild_id.get() },
         )
         .expect("Failed to check if session exists")
         .is_some()

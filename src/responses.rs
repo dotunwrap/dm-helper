@@ -11,6 +11,16 @@ pub async fn failure(ctx: Context<'_>, msg: &str) -> Result<(), Error> {
     Ok(())
 }
 
+pub async fn settings_not_configured(ctx: Context<'_>) -> Result<(), Error> {
+    failure(
+        ctx,
+        "Settings not configured for this command.\n
+        If you are an admin, please configure your settings using `/settings`.\n
+        If you are not an admin, please contact one.",
+    )
+    .await
+}
+
 pub async fn invalid_permissions(ctx: Context<'_>) -> Result<(), Error> {
     failure(
         ctx,
@@ -31,16 +41,6 @@ pub async fn paginate_embeds(
     let ctx_id = ctx.id();
     let prev_button_id = format!("{}_prev", ctx_id);
     let next_button_id = format!("{}_next", ctx_id);
-    // TODO: Allow for custom buttons with custom callbacks on press
-    // let mut buttons = vec![
-    //     serenity::CreateButton::new(&prev_button_id).emoji("⬅".chars().next().unwrap()),
-    //     serenity::CreateButton::new(&next_button_id).emoji("➡".chars().next().unwrap()),
-    // ];
-
-    // if let Some(custom_buttons) = custom_buttons {
-    //     buttons.splice(1..1, custom_buttons);
-    // }
-
     let reply = {
         let components = serenity::CreateActionRow::Buttons(vec![
             serenity::CreateButton::new(&prev_button_id).emoji("⬅".chars().next().unwrap()),
