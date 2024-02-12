@@ -24,7 +24,8 @@ CREATE TABLE `campaigns` (
     `dm_id` varchar(255) DEFAULT NULL,
     `name` text,
     `description` text,
-    PRIMARY KEY (`id`)
+    PRIMARY KEY (`id`),
+    KEY `guild_id_index` (`guild_id`)
 );
 
 CREATE TABLE `characters` (
