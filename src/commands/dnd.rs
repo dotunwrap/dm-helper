@@ -1,16 +1,15 @@
 use crate::{responses, Context, Error};
-use poise::serenity_prelude as serenity;
 
 pub mod campaign;
 pub mod dice;
 
 pub async fn has_dnd_role(ctx: Context<'_>) -> Result<bool, Error> {
-    Ok(ctx
-        .author_member()
-        .await
-        .unwrap()
-        .roles
-        .contains(&serenity::RoleId::from(ctx.data().dnd_role)))
+    Ok(ctx.author_member().await.unwrap().roles.contains(
+        &crate::commands::settings::get_settings(ctx)
+            .await
+            .unwrap_or_default()
+            .dnd_role_id,
+    ))
 }
 
 pub async fn dnd_check(ctx: Context<'_>) -> Result<bool, Error> {
