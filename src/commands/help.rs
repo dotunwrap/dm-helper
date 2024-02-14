@@ -16,7 +16,7 @@ pub async fn help(
         command.as_deref(),
         poise::builtins::HelpConfiguration {
             extra_text_at_bottom: "\
-            Type .help <command> for more info on a command.",
+            Run /help <command> for more info on a command.",
             ..Default::default()
         },
     )

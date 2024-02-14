@@ -1,31 +1,8 @@
-use crate::ApplicationContext;
-use crate::{utils::db, Context, Error};
+use crate::{utils::settings::get_settings, ApplicationContext, Error};
 use mysql::prelude::*;
 use mysql::*;
 use poise::serenity_prelude as serenity;
 use std::num::NonZeroU64;
-
-#[derive(Default)]
-pub struct Settings {
-    pub guild_id: serenity::GuildId,
-    pub dnd_role_id: serenity::RoleId,
-    pub dm_role_id: serenity::RoleId,
-}
-
-impl FromRow for Settings {
-    fn from_row(row: Row) -> Self {
-        let (guild_id, dnd_role_id, dm_role_id): (u64, u64, u64) = mysql::from_row(row);
-        Settings {
-            guild_id: serenity::GuildId::new(guild_id),
-            dnd_role_id: serenity::RoleId::new(dnd_role_id),
-            dm_role_id: serenity::RoleId::new(dm_role_id),
-        }
-    }
-
-    fn from_row_opt(_row: Row) -> Result<Self, mysql::FromRowError> {
-        todo!();
-    }
-}
 
 #[derive(Debug, poise::Modal)]
 #[name = "Settings"]
@@ -122,35 +99,9 @@ pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
                 dnd_role_id = IF(VALUES(dnd_role_id) != dnd_role_id, VALUES(dnd_role_id), dnd_role_id),
                 dm_role_id = IF(VALUES(dm_role_id) != dm_role_id, VALUES(dm_role_id), dm_role_id)",
             params! { "guild_id" => ctx.guild_id().unwrap().get(), "dnd_role_id" => dnd_role_id.get(), "dm_role_id" => dm_role_id.get() },
-        )
-        .expect("Failed to insert settings");
+        )?;
 
     ctx.reply("Settings configured.").await?;
 
     Ok(())
-}
-
-pub async fn get_settings(ctx: Context<'_>) -> Option<Settings> {
-    let guild_id = ctx.guild_id();
-
-    if guild_id.is_none() {
-        return None;
-    }
-
-    db::get_db_conn(ctx)
-        .exec_first::<Settings, _, _>(
-            "SELECT guild_id, dnd_role_id, dm_role_id FROM settings WHERE guild_id = :guild_id",
-            params! { "guild_id" => guild_id.unwrap().get() },
-        )
-        .expect("Failed to get settings")
-}
-
-pub async fn does_guild_have_settings(ctx: Context<'_>) -> bool {
-    db::get_db_conn(ctx)
-        .exec_first::<i64, _, _>(
-            "SELECT id FROM settings WHERE guild_id = :guild_id",
-            params! { "guild_id" => ctx.guild_id().unwrap().to_string() },
-        )
-        .expect("Failed to check if settings exist")
-        .is_some()
 }
