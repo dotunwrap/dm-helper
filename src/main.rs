@@ -8,6 +8,7 @@ use shuttle_serenity::ShuttleSerenity;
 
 pub mod commands;
 pub mod responses;
+pub mod structs;
 pub mod utils;
 
 pub struct Data {
@@ -76,6 +77,7 @@ pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> Shu
         help::help(),
         settings::settings(),
         dnd::campaign::session::session(),
+        dnd::campaign::campaign(),
         dnd::dice::roll(),
     ];
 

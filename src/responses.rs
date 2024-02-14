@@ -29,10 +29,71 @@ pub async fn invalid_permissions(ctx: Context<'_>) -> Result<(), Error> {
     .await
 }
 
+pub async fn verify_command<'a, T, F, Fut>(
+    ctx: Context<'a>,
+    function: F,
+    function_arg: T,
+) -> Result<(), Error>
+where
+    F: Fn(Context<'a>, T) -> Fut,
+    Fut: futures::Future<Output = Result<(), Error>>,
+{
+    let ctx_id = ctx.id();
+    let confirm_id = format!("{}_confirm", ctx_id);
+    let cancel_id = format!("{}_cancel", ctx_id);
+    let reply = {
+        let components = serenity::CreateActionRow::Buttons(vec![
+            serenity::CreateButton::new(&confirm_id).emoji("✅".chars().next().unwrap()),
+            serenity::CreateButton::new(&cancel_id).emoji("❌".chars().next().unwrap()),
+        ]);
+
+        poise::CreateReply::default()
+            .content("WARNING: This command is not reversible.\nAre you sure you want to continue?")
+            .components(vec![components])
+    };
+    let original_ctx: Context<'_> = ctx.clone();
+    let author_id = ctx.author().id;
+
+    ctx.send(reply).await?;
+
+    while let Some(press) = serenity::collector::ComponentInteractionCollector::new(ctx)
+        .filter(move |press| {
+            press.user.id == author_id && press.data.custom_id.starts_with(&ctx_id.to_string())
+        })
+        .timeout(std::time::Duration::from_secs(180))
+        .await
+    {
+        if press.data.custom_id == confirm_id {
+            press
+                .create_response(
+                    ctx.serenity_context(),
+                    serenity::CreateInteractionResponse::UpdateMessage(
+                        serenity::CreateInteractionResponseMessage::new().components(vec![]),
+                    ),
+                )
+                .await?;
+            return function(original_ctx, function_arg).await;
+        } else if press.data.custom_id == cancel_id {
+            press
+                .create_response(
+                    ctx.serenity_context(),
+                    serenity::CreateInteractionResponse::UpdateMessage(
+                        serenity::CreateInteractionResponseMessage::new().components(vec![]),
+                    ),
+                )
+                .await?;
+            return failure(original_ctx, "Command cancelled.").await;
+        } else {
+            continue;
+        }
+    }
+
+    Ok(())
+}
+
 pub async fn paginate_embeds(
     ctx: Context<'_>,
     embeds: Vec<serenity::CreateEmbed>,
-    // custom_buttons: Option<Vec<serenity::CreateButton>>,
 ) -> Result<(), Error> {
     if embeds.is_empty() {
         return failure(ctx, "No results found.").await;
