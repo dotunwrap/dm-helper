@@ -51,7 +51,6 @@ where
             .content("WARNING: This command is not reversible.\nAre you sure you want to continue?")
             .components(vec![components])
     };
-    let original_ctx: Context<'_> = ctx.clone();
     let author_id = ctx.author().id;
 
     ctx.send(reply).await?;
@@ -72,7 +71,7 @@ where
                     ),
                 )
                 .await?;
-            return function(original_ctx, function_arg).await;
+            return function(ctx, function_arg).await;
         } else if press.data.custom_id == cancel_id {
             press
                 .create_response(
@@ -82,7 +81,7 @@ where
                     ),
                 )
                 .await?;
-            return failure(original_ctx, "Command cancelled.").await;
+            return failure(ctx, "Command cancelled.").await;
         } else {
             continue;
         }
