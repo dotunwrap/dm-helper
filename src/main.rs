@@ -8,15 +8,16 @@ use shuttle_serenity::ShuttleSerenity;
 
 pub mod commands;
 pub mod responses;
+pub mod structs;
 pub mod utils;
-
-type Error = Box<dyn std::error::Error + Send + Sync>;
-type Context<'a> = poise::Context<'a, Data, Error>;
 
 pub struct Data {
     db: mysql::Pool,
-    dnd_role: serenity::RoleId,
 }
+
+type Error = Box<dyn std::error::Error + Send + Sync>;
+type Context<'a> = poise::Context<'a, Data, Error>;
+type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
 
 async fn on_error(error: poise::FrameworkError<'_, Data, Error>) -> () {
     match error {
@@ -76,6 +77,7 @@ pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> Shu
         help::help(),
         settings::settings(),
         dnd::campaign::session::session(),
+        dnd::campaign::campaign(),
         dnd::dice::roll(),
     ];
 
@@ -93,16 +95,6 @@ pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> Shu
                 ..Default::default()
             },
             on_error: |error| Box::pin(on_error(error)),
-            command_check: Some(|ctx| {
-                Box::pin(async move {
-                    Ok(ctx
-                        .author_member()
-                        .await
-                        .unwrap()
-                        .roles
-                        .contains(&serenity::RoleId::from(ctx.data().dnd_role)))
-                })
-            }),
             ..Default::default()
         })
         .setup(move |ctx, _ready, framework| {
@@ -110,10 +102,6 @@ pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> Shu
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
                     db: utils::db::init_dnd_db(&database_url),
-                    dnd_role: serenity::RoleId::from(901464574530814002), // TODO: Change this from
-                                                                          // a harcoded role from
-                                                                          // the str::from_utf8
-                                                                          // server
                 })
             })
         })
