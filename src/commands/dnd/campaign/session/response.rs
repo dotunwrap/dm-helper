@@ -1,7 +1,7 @@
 use crate::utils::db;
 use crate::{responses, Context, Error};
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 
 #[derive(poise::ChoiceParameter)]
 enum ResponseChoice {

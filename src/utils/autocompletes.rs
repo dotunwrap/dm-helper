@@ -1,8 +1,8 @@
 use super::{db, guilds::get_guild_id};
 use crate::Context;
 use futures::{Stream, StreamExt};
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 
 pub async fn autocomplete_campaign<'a>(
     ctx: Context<'_>,

@@ -1,7 +1,7 @@
 use super::db;
 use crate::{structs::Settings, Context};
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 
 pub async fn get_settings(ctx: Context<'_>) -> Option<Settings> {
     let guild_id = ctx.guild_id();

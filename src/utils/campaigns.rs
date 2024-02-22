@@ -1,7 +1,7 @@
 use super::{db, guilds::get_guild_id};
 use crate::Context;
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 
 pub async fn get_id_from_name(ctx: Context<'_>, name: &str) -> i64 {
     let guild_id = get_guild_id(ctx).await;
