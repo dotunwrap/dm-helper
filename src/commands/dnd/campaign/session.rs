@@ -256,7 +256,7 @@ pub async fn list(
 
     match campaign {
         Some(campaign) => {
-            where_clause.push_str(" AND s.campaign_id = :campaign");
+            where_clause.push_str(" AND c.name = :campaign");
             params = params! {
                 "guild_id" => guild_id.get(),
                 campaign
@@ -303,9 +303,9 @@ pub async fn list(
             embeds.push(
                 serenity::CreateEmbed::new()
                     .title(format!("{}", campaign_name))
-                    .field("Date/Time", scheduled_date, true)
                     .field("Location", location, true)
                     .field("Status", Session::translate_status(status), true)
+                    .field("Date/Time", scheduled_date, false)
                     .field(
                         "Going",
                         match going.is_empty() {
