@@ -13,8 +13,8 @@ use crate::{
     Context, Error,
 };
 use chrono::Local;
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 use poise::serenity_prelude as serenity;
 
 pub mod response;
@@ -56,8 +56,8 @@ pub async fn session(_ctx: Context<'_>) -> Result<(), Error> {
 #[poise::command(slash_command, check = "checks::dm_check")]
 pub async fn create(
     ctx: Context<'_>,
-    #[description = "Campaign to attribute the session to"]
     #[autocomplete = autocomplete_campaign]
+    #[description = "Campaign to attribute the session to"]
     campaign: String,
     #[description = "Where to meet"] location: String,
     #[description = "Date and time of the session (YYYY-MM-DD HH:MM)"] scheduled_date: String,

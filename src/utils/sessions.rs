@@ -1,7 +1,7 @@
 use super::{db, guilds::get_guild_id};
 use crate::Context;
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 
 pub async fn does_session_exist(ctx: Context<'_>, session_id: i64) -> bool {
     let guild_id = get_guild_id(ctx).await;

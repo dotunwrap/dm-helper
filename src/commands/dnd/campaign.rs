@@ -3,8 +3,8 @@ use crate::{
     utils::{autocompletes::autocomplete_campaign, campaigns, checks, db, guilds::get_guild_id},
     Context, Error,
 };
-use mysql::params;
 use mysql::prelude::*;
+use mysql::*;
 use poise::serenity_prelude as serenity;
 
 pub mod session;

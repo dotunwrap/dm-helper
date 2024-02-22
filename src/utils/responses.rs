@@ -1,6 +1,6 @@
 use super::db;
 use crate::{Context, structs::Response};
-use mysql::params;
+use mysql::*;
 use mysql::prelude::*;
 
 pub fn get_responses_for_session(ctx: Context<'_>, session_id: i64) -> Vec<Response> {
