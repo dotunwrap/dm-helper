@@ -10,7 +10,7 @@ enum ResponseChoice {
 }
 
 /// Responds to a D&D session
-#[poise::command(prefix_command, slash_command)]
+#[poise::command(slash_command)]
 pub async fn respond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i64,

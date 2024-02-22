@@ -2,22 +2,28 @@ use crate::{
     responses,
     structs::Session,
     utils::{
-        autocompletes::autocomplete_campaign, checks, db, guilds::get_guild_id,
-        responses::get_responses_for_session, sessions,
+        autocompletes::autocomplete_campaign,
+        checks,
+        date::{is_date_format_valid, is_date_in_future},
+        db,
+        guilds::get_guild_id,
+        responses::get_responses_for_session,
+        sessions,
     },
     Context, Error,
 };
-use chrono::{Local, NaiveDateTime, TimeZone};
+use chrono::Local;
 use mysql::params;
 use mysql::prelude::*;
 use poise::serenity_prelude as serenity;
 
 pub mod response;
 
-const _STATUS_PENDING: i64 = 0;
-const _STATUS_CONFIRMED: i64 = 1;
+const STATUS_PENDING: i64 = 0;
+const STATUS_CONFIRMED: i64 = 1;
 const STATUS_CANCELLED: i64 = 2;
 
+#[derive(poise::ChoiceParameter)]
 enum StatusChoice {
     Pending,
     Confirmed,
@@ -27,7 +33,15 @@ enum StatusChoice {
 /// D&D Sessions (subcommand required)
 #[poise::command(
     slash_command,
-    subcommands("create", "cancel", "clear_all", "list", "response::respond"),
+    subcommands(
+        "create",
+        "edit",
+        "cancel",
+        "clear_all",
+        "list",
+        "set",
+        "response::respond"
+    ),
     subcommand_required,
     check = "checks::dnd_check",
     category = "D&D"
@@ -51,16 +65,13 @@ pub async fn create(
     ctx.defer().await?;
 
     let guild_id = get_guild_id(ctx).await;
-    let created_date = Local::now();
-    let scheduled_date = NaiveDateTime::parse_from_str(&scheduled_date, "%Y-%m-%d %H:%M");
+    let created_date = Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
 
-    if scheduled_date.is_err() {
+    if !is_date_format_valid(&scheduled_date) {
         return responses::failure(ctx, "Invalid date format.").await;
     }
 
-    let scheduled_date = Local.from_local_datetime(&scheduled_date.unwrap()).unwrap();
-
-    if scheduled_date < created_date {
+    if !is_date_in_future(&scheduled_date) {
         return responses::failure(ctx, "Scheduled date must be in the future.").await;
     }
 
@@ -80,8 +91,8 @@ pub async fn create(
             "author_id" => ctx.author().id.to_string(),
             "location" => location,
             "status" => 0,
-            "created_date" => created_date.format("%Y-%m-%d %H:%M:%S").to_string(),
-            "scheduled_date" => scheduled_date.format("%Y-%m-%d %H:%M:%S").to_string(),
+            "created_date" => created_date,
+            "scheduled_date" => scheduled_date,
             "campaign_name" => campaign,
             "guild_id" => guild_id.get()
         },
@@ -90,11 +101,89 @@ pub async fn create(
     responses::success(ctx, "Session created.").await
 }
 
+/// Edits and existing session (DMs only)
+#[poise::command(
+    slash_command,
+    subcommands("location", "date"),
+    subcommand_required,
+    check = "checks::dm_check"
+)]
+pub async fn edit(_ctx: Context<'_>) -> Result<(), Error> {
+    Ok(())
+}
+
+/// Edits the location of an existing session (DMs only)
+#[poise::command(slash_command)]
+pub async fn location(
+    ctx: Context<'_>,
+    #[description = "The ID of the session to edit"] session_id: i64,
+    #[description = "The new location"] location: String,
+) -> Result<(), Error> {
+    ctx.defer().await?;
+
+    if !sessions::does_session_exist(ctx, session_id).await {
+        return responses::failure(ctx, "Session not found.").await;
+    }
+
+    db::get_db_conn(ctx).exec_drop(
+        "UPDATE sessions SET location = :location WHERE id = :session_id",
+        params! {
+            "location" => &location,
+            "session_id" => session_id
+        },
+    )?;
+
+    responses::success(
+        ctx,
+        &format!(
+            "Location updated to {} for session ID {}",
+            location, session_id,
+        ),
+    )
+    .await
+}
+
+/// Edits the date of an existing session (DMs only)
+#[poise::command(slash_command)]
+pub async fn date(
+    ctx: Context<'_>,
+    #[description = "The ID of the session to edit"] session_id: i64,
+    #[description = "The new date (YYYY-MM-DD HH:MM)"] date: String,
+) -> Result<(), Error> {
+    ctx.defer().await?;
+
+    if !sessions::does_session_exist(ctx, session_id).await {
+        return responses::failure(ctx, "Session not found.").await;
+    }
+
+    if !is_date_format_valid(&date) {
+        return responses::failure(ctx, "Invalid date format.").await;
+    }
+
+    if !is_date_in_future(&date) {
+        return responses::failure(ctx, "Scheduled date must be in the future.").await;
+    }
+
+    db::get_db_conn(ctx).exec_drop(
+        "UPDATE sessions SET scheduled_date = :date WHERE id = :session_id",
+        params! {
+            "date" => &date,
+            "session_id" => session_id
+        },
+    )?;
+
+    responses::success(
+        ctx,
+        &format!("Date updated to {} for session ID {}", date, session_id,),
+    )
+    .await
+}
+
 /// Cancels a D&D session (DMs only)
 #[poise::command(slash_command, check = "checks::dm_check")]
 pub async fn cancel(
     ctx: Context<'_>,
-    #[description = "Session ID"] session_id: i64,
+    #[description = "The ID of the session to cancel"] session_id: i64,
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
@@ -242,4 +331,38 @@ pub async fn list(
     )?;
 
     responses::paginate_embeds(ctx, embeds).await
+}
+
+/// Sets the status of an existing session (DMs only)
+#[poise::command(slash_command, check = "checks::dm_check")]
+pub async fn set(
+    ctx: Context<'_>,
+    #[description = "The ID of the session to edit"] session_id: i64,
+    #[description = "The status to set the session to"] status: StatusChoice,
+) -> Result<(), Error> {
+    ctx.defer().await?;
+
+    if !sessions::does_session_exist(ctx, session_id).await {
+        return responses::failure(ctx, "Session not found.").await;
+    }
+
+    let status = match status {
+        StatusChoice::Pending => STATUS_PENDING,
+        StatusChoice::Confirmed => STATUS_CONFIRMED,
+        StatusChoice::Cancelled => STATUS_CANCELLED,
+    };
+
+    db::get_db_conn(ctx).exec_drop(
+        "UPDATE sessions SET status = :status WHERE id = :session_id",
+        params! {
+            status,
+            session_id
+        },
+    )?;
+
+    responses::success(
+        ctx,
+        &format!("Status updated to {} for session ID {}", status, session_id),
+    )
+    .await
 }
