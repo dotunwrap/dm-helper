@@ -4,7 +4,7 @@ use crate::{
     utils::{
         autocompletes::autocomplete_campaign,
         checks,
-        date::{get_long_date_week_day_timestamp, is_date_format_valid, is_date_in_future},
+        date::{is_date_format_valid, is_date_in_future},
         db,
         guilds::get_guild_id,
         responses::get_responses_for_session,
@@ -174,11 +174,7 @@ pub async fn date(
 
     responses::success(
         ctx,
-        &format!(
-            "Date updated to {} for session ID {}",
-            get_long_date_week_day_timestamp(&date).unwrap_or(date),
-            session_id,
-        ),
+        &format!("Date updated to {} for session ID {}", date, session_id,),
     )
     .await
 }
@@ -295,8 +291,6 @@ pub async fn list(
         )| {
             let mut going: Vec<String> = vec![];
             let mut not_going: Vec<String> = vec![];
-            let scheduled_date =
-                get_long_date_week_day_timestamp(&scheduled_date).unwrap_or(scheduled_date);
 
             get_responses_for_session(ctx, id)
                 .into_iter()
