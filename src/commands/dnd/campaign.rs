@@ -30,6 +30,7 @@ pub async fn create(
     #[description = "The user that is DMing the campaign. Defaults to you"] dm: Option<
         serenity::User,
     >,
+    #[description = "The URL to attach to the campaign"] link: Option<String>,
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
@@ -46,15 +47,16 @@ pub async fn create(
 
     db::get_db_conn(ctx).exec_drop(
         "INSERT INTO campaigns (
-            guild_id, dm_id, name, description
+            guild_id, dm_id, name, description, link
         ) VALUES (
-            :guild_id, :dm_id, :name, :description
+            :guild_id, :dm_id, :name, :description, :link
         )",
         params! {
             "guild_id" => guild_id.get(),
             dm_id,
             name,
-            description
+            description,
+            link
         },
     )?;
 
@@ -64,7 +66,7 @@ pub async fn create(
 /// Edits an existing D&D campaign (DMs only)
 #[poise::command(
     slash_command,
-    subcommands("name", "description", "dm"),
+    subcommands("name", "description", "dm", "link"),
     subcommand_required,
     check = "checks::dm_check"
 )]
@@ -181,6 +183,36 @@ pub async fn dm(
     .await
 }
 
+/// Edits the link of an existing D&D campaign (DMs only)
+#[poise::command(slash_command)]
+pub async fn link(
+    ctx: Context<'_>,
+    #[description = "The name of the campaign to edit"]
+    #[autocomplete = "autocomplete_campaign"]
+    name: String,
+    #[description = "The new link of the campaign"] link: String,
+) -> Result<(), Error> {
+    ctx.defer().await?;
+
+    if !campaigns::does_campaign_exist(ctx, &name).await {
+        return responses::failure(ctx, &format!("Campaign with name {} does not exist.", name))
+            .await;
+    }
+
+    let guild_id = get_guild_id(ctx).await;
+
+    db::get_db_conn(ctx).exec_drop(
+        "UPDATE campaigns SET link = :link WHERE name = :name AND guild_id = :guild_id",
+        params! {
+            "link" => link,
+            "name" => &name,
+            "guild_id" => guild_id.get()
+        },
+    )?;
+
+    responses::success(ctx, &format!("Campaign {}'s link updated.", name)).await
+}
+
 /// Deletes an existing D&D campaign (DMs only)
 #[poise::command(slash_command)]
 pub async fn delete(
@@ -225,14 +257,18 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];
 
     db::get_db_conn(ctx).exec_map(
-        "SELECT name, description, dm_id FROM campaigns WHERE guild_id = :guild_id",
+        "SELECT name, description, dm_id, link FROM campaigns WHERE guild_id = :guild_id",
         params! {
             "guild_id" => guild_id.get()
         },
-        |(name, description, dm_id): (String, Option<String>, u64)| {
+        |(name, description, dm_id, link): (String, Option<String>, u64, Option<String>)| {
             embeds.push(
                 serenity::CreateEmbed::new()
                     .title(&name)
+                    .url(match link {
+                        Some(link) => link,
+                        None => String::from(""),
+                    })
                     .description(match description {
                         Some(description) => description,
                         None => String::from(""),
