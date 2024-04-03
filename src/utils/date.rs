@@ -61,7 +61,7 @@ pub fn get_long_date_week_day_timestamp(date: &str) -> Result<String, chrono::Pa
 
 pub fn get_unix_timestamp(date: &str) -> Result<i64, chrono::ParseError> {
     match NaiveDateTime::parse_from_str(date, "%Y-%m-%d %H:%M") {
-        Ok(parsed_date) => Ok(parsed_date.timestamp()),
+        Ok(parsed_date) => Ok(parsed_date.and_utc().timestamp()),
         Err(e) => Err(e),
     }
 }

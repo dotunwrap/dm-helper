@@ -3,7 +3,7 @@
 use crate::commands::*;
 use anyhow::anyhow;
 use poise::serenity_prelude as serenity;
-use shuttle_secrets::SecretStore;
+use shuttle_runtime::SecretStore;
 use shuttle_serenity::ShuttleSerenity;
 
 pub mod commands;
@@ -60,7 +60,7 @@ async fn on_event(
 }
 
 #[shuttle_runtime::main]
-pub async fn poise(#[shuttle_secrets::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
+pub async fn poise(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> ShuttleSerenity {
     let token = if let Some(token) = secret_store.get("DISCORD_TOKEN") {
         token
     } else {
