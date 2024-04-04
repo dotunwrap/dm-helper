@@ -1,7 +1,7 @@
-use crate::utils::db;
+use crate::models::NewResponse;
+use crate::ops::response_ops;
+use crate::utils::id::user_id_to_i64;
 use crate::{responses, Context, Error};
-use mysql::prelude::*;
-use mysql::*;
 
 #[derive(poise::ChoiceParameter)]
 enum ResponseChoice {
@@ -13,7 +13,7 @@ enum ResponseChoice {
 #[poise::command(slash_command)]
 pub async fn respond(
     ctx: Context<'_>,
-    #[description = "The ID of the session you're responding to"] session_id: i64,
+    #[description = "The ID of the session you're responding to"] session_id: i32,
     #[description = "Are you going?"] response: ResponseChoice,
 ) -> Result<(), Error> {
     let response = match response {
@@ -21,24 +21,14 @@ pub async fn respond(
         ResponseChoice::No => 0,
     };
 
-    db::get_db_conn(ctx).exec_drop(
-        "INSERT INTO responses (
-                session_id,
-                respondee_id,
-                response,
-                responded_date
-            ) VALUES (
-                :session_id,
-                :respondee_id,
-                :response,
-                NOW()
-            ) ON DUPLICATE KEY UPDATE response = :response",
-        params! {
-            "session_id" => session_id,
-            "respondee_id" => ctx.author().id.to_string(),
-            "response" => response as i64
-        },
-    )?;
+    let new_response = NewResponse {
+        session_id,
+        respondee_id: user_id_to_i64(ctx.author().id).await,
+        response,
+        responded_date: chrono::Utc::now().naive_utc(),
+    };
+
+    response_ops::create_response(ctx, new_response);
 
     responses::success(ctx, "Response recorded.").await
 }

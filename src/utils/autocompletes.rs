@@ -1,23 +1,20 @@
-use super::{db, guilds::get_guild_id};
+use super::{guilds::get_guild_id, id::guild_id_to_i64};
+use crate::ops::campaign_ops::get_campaign_names;
 use crate::Context;
 use futures::{Stream, StreamExt};
-use mysql::prelude::*;
-use mysql::*;
 
 pub async fn autocomplete_campaign<'a>(
     ctx: Context<'_>,
     partial: &'a str,
 ) -> impl Stream<Item = String> + 'a {
-    let guild_id = get_guild_id(ctx).await;
+    let guild_id_i64 = guild_id_to_i64(get_guild_id(ctx).await).await;
 
-    let campaigns: Vec<String> = db::get_db_conn(ctx)
-        .exec(
-            "SELECT DISTINCT name FROM campaigns WHERE guild_id = :guild_id",
-            params! { "guild_id" =>  guild_id.get() },
-        )
-        .unwrap();
+    let results = match get_campaign_names(ctx, guild_id_i64) {
+        Some(campaigns) => campaigns,
+        None => vec![],
+    };
 
-    futures::stream::iter(campaigns)
+    futures::stream::iter(results)
         .filter(move |c| futures::future::ready(c.starts_with(partial)))
         .map(|c| c.to_string())
 }

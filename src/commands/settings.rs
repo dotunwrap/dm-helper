@@ -1,6 +1,12 @@
-use crate::{utils::settings::get_settings, ApplicationContext, Error};
-use mysql::prelude::*;
-use mysql::*;
+use crate::{
+    models::NewSetting,
+    ops::settings_ops,
+    utils::{
+        guilds::get_guild_id,
+        id::{guild_id_to_i64, i64_to_role_id},
+    },
+    ApplicationContext, Error,
+};
 use poise::serenity_prelude as serenity;
 use std::num::NonZeroU64;
 
@@ -22,20 +28,34 @@ struct SettingsModal {
 pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     use poise::Modal as _;
 
-    let settings = get_settings(poise::Context::Application(ctx)).await;
+    let guild_id = guild_id_to_i64(get_guild_id(poise::Context::Application(ctx)).await).await;
+    let settings = settings_ops::get_settings(poise::Context::Application(ctx), guild_id);
 
-    let data: SettingsModal = if settings.is_some() {
-        SettingsModal::execute_with_defaults(
-            ctx,
-            SettingsModal {
-                dnd_role_id: settings.as_ref().unwrap().dnd_role_id.to_string(),
-                dm_role_id: settings.as_ref().unwrap().dm_role_id.to_string(),
-            },
-        )
-        .await?
-        .expect("Failed to execute the modal with defaults.")
-    } else {
-        SettingsModal::execute(ctx).await?.unwrap()
+    let data: SettingsModal = match &settings {
+        Some(settings) => {
+            let dnd_role_id = match settings.dnd_role_id {
+                Some(dnd_role_id) => i64_to_role_id(dnd_role_id).await,
+                None => serenity::RoleId::from(NonZeroU64::MIN),
+            };
+
+            let dm_role_id = match settings.dm_role_id {
+                Some(dm_role_id) => i64_to_role_id(dm_role_id).await,
+                None => serenity::RoleId::from(NonZeroU64::MIN),
+            };
+
+            SettingsModal::execute_with_defaults(
+                ctx,
+                SettingsModal {
+                    dnd_role_id: dnd_role_id.to_string(),
+                    dm_role_id: dm_role_id.to_string(),
+                },
+            )
+            .await?
+            .expect("Failed to execute the modal with defaults.")
+        }
+        None => SettingsModal::execute(ctx)
+            .await?
+            .expect("Failed to execute the modal."),
     };
 
     let dnd_role_id = match data.dnd_role_id.parse::<NonZeroU64>() {
@@ -76,30 +96,24 @@ pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
+    let dm_role_id = i64::try_from(dm_role_id.get()).expect("Failed to convert role ID.");
+    let dnd_role_id = i64::try_from(dnd_role_id.get()).expect("Failed to convert role ID.");
+
     if settings.is_some()
-        && dm_role_id == settings.as_ref().unwrap().dm_role_id
-        && dnd_role_id == settings.unwrap().dnd_role_id
+        && dm_role_id == settings.as_ref().unwrap().dm_role_id.unwrap_or(0)
+        && dnd_role_id == settings.unwrap().dnd_role_id.unwrap_or(0)
     {
         ctx.reply("No changes were made.").await?;
         return Ok(());
     }
 
-    ctx.data().db.get_conn().expect("Failed to get connection")
-        .exec_drop(
-            "INSERT INTO settings (
-                guild_id,
-                dnd_role_id,
-                dm_role_id
-            ) VALUES (
-                :guild_id,
-                :dnd_role_id,
-                :dm_role_id
-            )
-            ON DUPLICATE KEY UPDATE
-                dnd_role_id = IF(VALUES(dnd_role_id) != dnd_role_id, VALUES(dnd_role_id), dnd_role_id),
-                dm_role_id = IF(VALUES(dm_role_id) != dm_role_id, VALUES(dm_role_id), dm_role_id)",
-            params! { "guild_id" => ctx.guild_id().unwrap().get(), "dnd_role_id" => dnd_role_id.get(), "dm_role_id" => dm_role_id.get() },
-        )?;
+    let settings = NewSetting {
+        guild_id,
+        dm_role_id: Some(dm_role_id),
+        dnd_role_id: Some(dnd_role_id),
+    };
+
+    settings_ops::create_settings(poise::Context::Application(ctx), settings);
 
     ctx.reply("Settings configured.").await?;
 

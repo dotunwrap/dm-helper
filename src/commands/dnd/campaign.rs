@@ -1,10 +1,15 @@
 use crate::{
+    models::{Campaign, NewCampaign},
+    ops::campaign_ops,
     responses,
-    utils::{autocompletes::autocomplete_campaign, campaigns, checks, db, guilds::get_guild_id},
+    utils::{
+        autocompletes::autocomplete_campaign,
+        checks,
+        guilds::get_guild_id,
+        id::{guild_id_to_i64, user_id_to_i64},
+    },
     Context, Error,
 };
-use mysql::prelude::*;
-use mysql::*;
 use poise::serenity_prelude as serenity;
 
 pub mod session;
@@ -34,31 +39,29 @@ pub async fn create(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    if campaigns::is_campaign_name_taken(ctx, &name).await {
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+    if campaign_ops::does_campaign_exist(ctx, &name, guild_id) {
         return responses::failure(ctx, &format!("Campaign with name {} already exists.", name))
             .await;
     }
 
-    let guild_id = get_guild_id(ctx).await;
     let dm_id = match dm {
-        Some(dm) => dm.id.get(),
-        None => ctx.author().id.get(),
+        Some(dm) => dm.id,
+        None => ctx.author().id,
     };
 
-    db::get_db_conn(ctx).exec_drop(
-        "INSERT INTO campaigns (
-            guild_id, dm_id, name, description, link
-        ) VALUES (
-            :guild_id, :dm_id, :name, :description, :link
-        )",
-        params! {
-            "guild_id" => guild_id.get(),
-            dm_id,
-            name,
-            description,
-            link
-        },
-    )?;
+    let campaign = NewCampaign {
+        guild_id,
+        dm_id: user_id_to_i64(dm_id).await,
+        name: &name,
+        description: description.as_deref(),
+        link: link.as_deref(),
+        deleted: false,
+        created_date: chrono::Utc::now().naive_utc(),
+    };
+
+    campaign_ops::create_campaign(ctx, campaign);
 
     responses::success(ctx, "Campaign created.").await
 }
@@ -85,7 +88,9 @@ pub async fn name(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    if !campaigns::does_campaign_exist(ctx, &old_name).await {
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+    if !campaign_ops::does_campaign_exist(ctx, &old_name, guild_id) {
         return responses::failure(
             ctx,
             &format!("Campaign with name {} does not exist.", old_name),
@@ -93,7 +98,7 @@ pub async fn name(
         .await;
     }
 
-    if campaigns::is_campaign_name_taken(ctx, &new_name).await {
+    if campaign_ops::does_campaign_exist(ctx, &new_name, guild_id) {
         return responses::failure(
             ctx,
             &format!("Campaign with name {} already exists.", new_name),
@@ -101,16 +106,17 @@ pub async fn name(
         .await;
     }
 
-    let guild_id = get_guild_id(ctx).await;
+    let campaign = Campaign {
+        name: new_name.clone(),
+        ..campaign_ops::get_campaign(
+            ctx,
+            guild_id,
+            campaign_ops::CampaignFilters::Name(old_name.clone()),
+        )
+        .unwrap()
+    };
 
-    db::get_db_conn(ctx).exec_drop(
-        "UPDATE campaigns SET name = :new_name WHERE name = :old_name AND guild_id = :guild_id",
-        params! {
-            "new_name" => &new_name,
-            "old_name" => &old_name,
-            "guild_id" => guild_id.get()
-        },
-    )?;
+    campaign_ops::update_campaign(ctx, campaign);
 
     responses::success(
         ctx,
@@ -130,21 +136,24 @@ pub async fn description(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    if !campaigns::does_campaign_exist(ctx, &name).await {
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+    if !campaign_ops::does_campaign_exist(ctx, &name, guild_id) {
         return responses::failure(ctx, &format!("Campaign with name {} does not exist.", name))
             .await;
     }
 
-    let guild_id = get_guild_id(ctx).await;
+    let campaign = Campaign {
+        description: Some(description),
+        ..campaign_ops::get_campaign(
+            ctx,
+            guild_id,
+            campaign_ops::CampaignFilters::Name(name.clone()),
+        )
+        .unwrap()
+    };
 
-    db::get_db_conn(ctx).exec_drop(
-        "UPDATE campaigns SET description = :description WHERE name = :name AND guild_id = :guild_id",
-        params! {
-            description,
-            "name" => &name,
-            "guild_id" => guild_id.get()
-        }
-    )?;
+    campaign_ops::update_campaign(ctx, campaign);
 
     responses::success(ctx, &format!("Campaign {}'s description updated.", name)).await
 }
@@ -160,21 +169,24 @@ pub async fn dm(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    if !campaigns::does_campaign_exist(ctx, &name).await {
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+    if !campaign_ops::does_campaign_exist(ctx, &name, guild_id) {
         return responses::failure(ctx, &format!("Campaign with name {} does not exist.", name))
             .await;
     }
 
-    let guild_id = get_guild_id(ctx).await;
+    let campaign = Campaign {
+        dm_id: user_id_to_i64(dm.id).await,
+        ..campaign_ops::get_campaign(
+            ctx,
+            guild_id,
+            campaign_ops::CampaignFilters::Name(name.clone()),
+        )
+        .unwrap()
+    };
 
-    db::get_db_conn(ctx).exec_drop(
-        "UPDATE campaigns SET dm_id = :dm_id WHERE name = :name AND guild_id = :guild_id",
-        params! {
-            "dm_id" => dm.id.get(),
-            "name" => &name,
-            "guild_id" => guild_id.get()
-        },
-    )?;
+    campaign_ops::update_campaign(ctx, campaign);
 
     responses::success(
         ctx,
@@ -194,21 +206,24 @@ pub async fn link(
 ) -> Result<(), Error> {
     ctx.defer().await?;
 
-    if !campaigns::does_campaign_exist(ctx, &name).await {
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+    if !campaign_ops::does_campaign_exist(ctx, &name, guild_id) {
         return responses::failure(ctx, &format!("Campaign with name {} does not exist.", name))
             .await;
     }
 
-    let guild_id = get_guild_id(ctx).await;
+    let campaign = Campaign {
+        link: Some(link),
+        ..campaign_ops::get_campaign(
+            ctx,
+            guild_id,
+            campaign_ops::CampaignFilters::Name(name.clone()),
+        )
+        .unwrap()
+    };
 
-    db::get_db_conn(ctx).exec_drop(
-        "UPDATE campaigns SET link = :link WHERE name = :name AND guild_id = :guild_id",
-        params! {
-            "link" => link,
-            "name" => &name,
-            "guild_id" => guild_id.get()
-        },
-    )?;
+    campaign_ops::update_campaign(ctx, campaign);
 
     responses::success(ctx, &format!("Campaign {}'s link updated.", name)).await
 }
@@ -224,7 +239,9 @@ pub async fn delete(
     async fn delete_campaign(ctx: Context<'_>, name: String) -> Result<(), Error> {
         ctx.defer().await?;
 
-        if !campaigns::does_campaign_exist(ctx, &name).await {
+        let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
+
+        if !campaign_ops::does_campaign_exist(ctx, &name, guild_id) {
             return responses::failure(
                 ctx,
                 &format!("Campaign with name {} does not exist.", name),
@@ -232,15 +249,17 @@ pub async fn delete(
             .await;
         }
 
-        let guild_id = get_guild_id(ctx).await;
+        let campaign = Campaign {
+            deleted: true,
+            ..campaign_ops::get_campaign(
+                ctx,
+                guild_id,
+                campaign_ops::CampaignFilters::Name(name.clone()),
+            )
+            .unwrap()
+        };
 
-        db::get_db_conn(ctx).exec_drop(
-            "DELETE FROM campaigns WHERE name = :name AND guild_id = :guild_id",
-            params! {
-                "name" => &name,
-                "guild_id" => guild_id.get()
-            },
-        )?;
+        campaign_ops::update_campaign(ctx, campaign);
 
         responses::success(ctx, &format!("Campaign {} deleted.", name)).await
     }
@@ -253,30 +272,27 @@ pub async fn delete(
 pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
     ctx.defer().await?;
 
-    let guild_id = get_guild_id(ctx).await;
+    let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];
 
-    db::get_db_conn(ctx).exec_map(
-        "SELECT name, description, dm_id, link FROM campaigns WHERE guild_id = :guild_id",
-        params! {
-            "guild_id" => guild_id.get()
-        },
-        |(name, description, dm_id, link): (String, Option<String>, u64, Option<String>)| {
+    match campaign_ops::get_campaigns(ctx, guild_id) {
+        Some(campaigns) => campaigns.into_iter().for_each(|campaign| {
             embeds.push(
                 serenity::CreateEmbed::new()
-                    .title(&name)
-                    .url(match link {
+                    .title(&campaign.name)
+                    .url(match campaign.link {
                         Some(link) => link,
                         None => String::from(""),
                     })
-                    .description(match description {
+                    .description(match campaign.description {
                         Some(description) => description,
                         None => String::from(""),
                     })
-                    .field("DM", format!("<@{}>", dm_id), false),
+                    .field("DM", format!("<@{}>", campaign.dm_id), false),
             )
-        },
-    )?;
+        }),
+        None => {}
+    };
 
     responses::paginate_embeds(ctx, embeds).await
 }
