@@ -1,14 +1,16 @@
 use crate::Context;
-use mysql::*;
+use diesel::prelude::*;
+use diesel::r2d2::Pool;
+use diesel::r2d2::{ConnectionManager, PooledConnection};
 
-pub fn init_dnd_db(database_url: &str) -> Pool {
-    Pool::new(
-        OptsBuilder::from_opts(Opts::from_url(database_url).expect("Could not parse database URL"))
-            .ssl_opts(SslOpts::default()),
-    )
-    .expect("Could not connect to database")
+pub fn init_pool(database_url: &str) -> Pool<ConnectionManager<PgConnection>> {
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    Pool::builder()
+        .test_on_check_out(true)
+        .build(manager)
+        .expect("Could not connect to database")
 }
 
-pub fn get_db_conn(ctx: Context<'_>) -> PooledConn {
-    ctx.data().db.get_conn().expect("Failed to get connection")
+pub fn get_conn(ctx: Context<'_>) -> PooledConnection<ConnectionManager<PgConnection>> {
+    ctx.data().db_pool.get().expect("Failed to get connection")
 }
