@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 poise = "0.6.1"
 tokio = { version = "1.20.1", features = ["macros", "rt-multi-thread"] }
-mysql = "*"
+diesel = { version = "2.1.0", features = ["postgres", "r2d2", "chrono"] }
 chrono = "0.4.31"
 rand = "0.8.5"
 futures = "*"

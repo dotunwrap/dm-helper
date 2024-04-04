@@ -1,4 +1,6 @@
 #![warn(clippy::str_to_string)]
+#[macro_use]
+extern crate diesel;
 
 use crate::commands::*;
 use anyhow::anyhow;
@@ -7,12 +9,14 @@ use shuttle_runtime::SecretStore;
 use shuttle_serenity::ShuttleSerenity;
 
 pub mod commands;
+pub mod models;
+pub mod ops;
 pub mod responses;
-pub mod structs;
+pub mod schema;
 pub mod utils;
 
 pub struct Data {
-    db: mysql::Pool,
+    db_pool: diesel::r2d2::Pool<diesel::r2d2::ConnectionManager<diesel::PgConnection>>,
 }
 
 type Error = Box<dyn std::error::Error + Send + Sync>;
@@ -101,7 +105,7 @@ pub async fn poise(#[shuttle_runtime::Secrets] secret_store: SecretStore) -> Shu
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
                 Ok(Data {
-                    db: utils::db::init_dnd_db(&database_url),
+                    db_pool: utils::db::init_pool(&database_url),
                 })
             })
         })
