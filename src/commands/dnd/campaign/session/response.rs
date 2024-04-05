@@ -1,5 +1,6 @@
 use crate::models::NewResponse;
 use crate::ops::{response_ops, session_ops};
+use crate::utils::checks;
 use crate::utils::id::user_id_to_i64;
 use crate::{responses, Context, Error};
 
@@ -10,7 +11,7 @@ enum ResponseChoice {
 }
 
 /// Responds to a D&D session
-#[poise::command(slash_command)]
+#[poise::command(slash_command, check = "checks::dnd_check")]
 pub async fn respond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
