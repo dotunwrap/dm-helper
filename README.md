@@ -6,7 +6,7 @@ This project is not affiliated with Discord, Wizards of the Coast, or Dungeons &
 
 ## Adding this bot to your server
 
-If you'd like to add this bot to your server, you can [CLICK HERE](https://discord.com/oauth2/authorize?client_id=1206335553352769617&permissions=274877992000&scope=applications.commands+bot). This link will automatically request basic bot permissions. These include:
+If you'd like to add this bot to your server, you can [CLICK HERE](https://discord.com/oauth2/authorize?client_id=1201638205389275216&permissions=274877992000&scope=applications.commands+bot). This link will automatically request basic bot permissions. These include:
 
 - View channels
 - Read messages
