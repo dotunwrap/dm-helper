@@ -229,7 +229,7 @@ pub async fn link(
 }
 
 /// Deletes an existing D&D campaign (DMs only)
-#[poise::command(slash_command)]
+#[poise::command(slash_command, check = "checks::dm_check")]
 pub async fn delete(
     ctx: Context<'_>,
     #[description = "The name of the campaign to delete"]

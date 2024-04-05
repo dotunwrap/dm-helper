@@ -24,7 +24,12 @@ struct SettingsModal {
 }
 
 /// Configures the settings for the server
-#[poise::command(slash_command, guild_only, category = "Settings")]
+#[poise::command(
+    slash_command,
+    guild_only,
+    category = "Settings",
+    required_permissions = "MANAGE_ROLES"
+)]
 pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
     use poise::Modal as _;
 
