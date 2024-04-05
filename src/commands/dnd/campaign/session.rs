@@ -226,12 +226,13 @@ pub async fn list(
 
     let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];
-    let campaign_id = campaign_ops::get_id_from_name(ctx, &campaign, guild_id).unwrap();
     let conn = &mut crate::utils::db::get_conn(ctx);
 
     if !campaign_ops::does_campaign_exist(ctx, &campaign, guild_id) {
         return responses::failure(ctx, "Campaign not found.").await;
     }
+
+    let campaign_id = campaign_ops::get_id_from_name(ctx, &campaign, guild_id).unwrap();
 
     let results = {
         use crate::schema::campaigns;
