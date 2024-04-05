@@ -234,7 +234,7 @@ pub async fn list(
 
     let campaign_id = campaign_ops::get_id_from_name(ctx, &campaign, guild_id).unwrap();
 
-    let results = {
+    let results: Option<Vec<(Session, String)>> = {
         use crate::schema::campaigns;
         use crate::schema::sessions;
 
@@ -243,8 +243,8 @@ pub async fn list(
             .filter(campaigns::id.eq(campaign_id))
             .filter(sessions::scheduled_date.ge(chrono::Utc::now().naive_utc()))
             .order_by(sessions::scheduled_date)
-            .select(sessions::all_columns)
-            .load::<Session>(conn)
+            .select((sessions::all_columns, campaigns::name))
+            .load(conn)
             .ok()
     };
 
@@ -252,7 +252,9 @@ pub async fn list(
         return responses::failure(ctx, "No sessions found.").await;
     }
 
-    results.unwrap().into_iter().for_each(|session| {
+    results.unwrap().into_iter().for_each(|result| {
+        let session = result.0;
+        let campaign_name = result.1;
         let mut going: Vec<String> = vec![];
         let mut not_going: Vec<String> = vec![];
 
@@ -282,9 +284,6 @@ pub async fn list(
             .unwrap()
             .format("%Y-%m-%d %H:%M")
             .to_string();
-
-        // TODO: Actually get the returned name from the INNER JOIN query above and use it.
-        let campaign_name = "".to_string();
 
         embeds.push(
             serenity::CreateEmbed::default()
