@@ -1,7 +1,5 @@
 # <p align="center"><img src="assets/banner.png" style="width: 450; margin: 1rem 0 0 0" /></p>
 
-# dm-helper
-
 A WIP Discord bot written in Rust using Serenity and Poise to moderate and manage D&amp;D campaigns.
 This bot runs on [Shuttle.rs](https://shuttle.rs). All PRs to master will deploy automatically to the production environment using GitHub Actions.
 This project is not affiliated with Discord, Wizards of the Coast, or Dungeons &amp; Dragons.
