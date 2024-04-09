@@ -4,6 +4,18 @@ A WIP Discord bot written in Rust using Serenity and Poise to moderate and manag
 This bot runs on [Shuttle.rs](https://shuttle.rs). All PRs to master will deploy automatically to the production environment using GitHub Actions.
 This project is not affiliated with Discord, Wizards of the Coast, or Dungeons &amp; Dragons.
 
+## Adding this bot to your server
+
+If you'd like to add this bot to your server, you can [CLICK HERE](https://discord.com/oauth2/authorize?client_id=1201638205389275216&permissions=274877992000&scope=applications.commands+bot). This link will automatically request basic bot permissions. These include:
+
+- View channels
+- Read messages
+- Send messages
+- Send messages in threads
+- Embed links
+- Read message history
+- Add reactions
+
 ## Development
 
 In order to work on this project, you will need to run the following commands:
