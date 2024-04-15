@@ -16,6 +16,7 @@ pub async fn respond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
     #[description = "Are you going?"] response: ResponseChoice,
+    #[description = "Who is going? Defaults to you."] respondee: Option<serenity::User,>,
 ) -> Result<(), Error> {
     if !session_ops::does_session_exist(ctx, session_id) {
         return responses::failure(ctx, "Session not found.").await;
@@ -26,9 +27,14 @@ pub async fn respond(
         ResponseChoice::No => 0,
     };
 
+    let respondee_id = match respondee {
+        Some(respondee) => respondee.id,
+        None => ctx.author().id,
+    };
+
     let new_response = NewResponse {
         session_id,
-        respondee_id: user_id_to_i64(ctx.author().id).await,
+        respondee_id: user_id_to_i64(respondee_id).await,
         response,
         responded_date: chrono::Utc::now().naive_utc(),
     };
