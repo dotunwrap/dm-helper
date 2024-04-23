@@ -47,16 +47,16 @@ After you have installed the CLI, you can run the following from the root of the
 ```bash
 diesel migration run --database-url <DATABASE_URL>
 ```
-Where ```<DATABASE_URL>``` uses the ```postgess://``` URI Example:
-```postgres://username:password@localhost:5432/database_name```
+Where `<DATABASE_URL>` uses the `postgess://` URI Example:
+`postgres://username:password@localhost:5432/database_name`
+
+As this bot deploys on Shuttle, it uses Shuttle secret store and Shuttle async runtime. As such, you need the `cargo-shuttle` crate installed on your local machine to run the bot. You can install this by running: `cargo install cargo-shuttle`
 
 You can then run:
 
 ```bash
 cargo shuttle run
 ```
-
-NOTE: If ```cargo shuttle run``` fails one must first run the command ```cargo install cargo-shuttle```
 
 Your bot should now be running on your machine. Add the bot to your server, and you can test locally.
 
