@@ -12,7 +12,7 @@ enum ResponseChoice {
 
 /// Responds to a D&D session as DM
 #[poise::command(slash_command, check = "checks::dm_check")]
-pub async fn respond(
+pub async fn dmrespond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
     #[description = "Are you going?"] response: ResponseChoice,
