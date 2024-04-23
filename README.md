@@ -44,14 +44,11 @@ cargo install diesel_cli --no-default-features --features postgres
 
 After you have installed the CLI, you can run the following from the root of the project:
 
-HINT: The format for <DATABASE_URL> is:
-```bash
-postgres://username:password@localhost:5432/database_name
-```
-
 ```bash
 diesel migration run --database-url <DATABASE_URL>
 ```
+Where ```<DATABASE_URL>``` uses the ```postgess://``` URI Example:
+```postgres://username:password@localhost:5432/database_name```
 
 You can then run:
 
