@@ -56,6 +56,8 @@ You can then run:
 cargo shuttle run
 ```
 
+NOTE: If ```cargo shuttle run``` fails one must first run the command ```cargo install cargo-shuttle```
+
 Your bot should now be running on your machine. Add the bot to your server, and you can test locally.
 
 ### PR Guide
