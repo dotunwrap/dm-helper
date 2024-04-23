@@ -50,7 +50,11 @@ diesel migration run --database-url <DATABASE_URL>
 Where `<DATABASE_URL>` uses the `postgess://` URI Example:
 `postgres://username:password@localhost:5432/database_name`
 
-As this bot deploys on Shuttle, it uses Shuttle secret store and Shuttle async runtime. As such, you need the `cargo-shuttle` crate installed on your local machine to run the bot. You can install this by running: `cargo install cargo-shuttle`
+As this bot deploys on Shuttle, it uses Shuttle secret store and Shuttle async runtime. As such, you need the `cargo-shuttle` crate installed on your local machine to run the bot. You can install this by running:
+
+```bash
+cargo install cargo-shuttle
+```
 
 You can then run:
 
