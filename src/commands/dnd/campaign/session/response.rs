@@ -27,14 +27,9 @@ pub async fn respond(
         ResponseChoice::No => 0,
     };
 
-    let respondee_id = match respondee {
-        Some(respondee) => respondee.id,
-        None => ctx.author().id,
-    };
-
     let new_response = NewResponse {
         session_id,
-        respondee_id: user_id_to_i64(respondee_id).await,
+        respondee_id: user_id_to_i64(ctx.author().id).await,
         response,
         responded_date: chrono::Utc::now().naive_utc(),
     };
