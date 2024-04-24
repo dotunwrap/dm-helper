@@ -37,7 +37,8 @@ enum StatusChoice {
         "clear_all",
         "list",
         "set",
-        "response::respond"
+        "response::respond",
+        "response::dmrespond"
     ),
     subcommand_required,
     check = "checks::dnd_check",

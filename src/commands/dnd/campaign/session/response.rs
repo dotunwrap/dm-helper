@@ -3,6 +3,7 @@ use crate::ops::{response_ops, session_ops};
 use crate::utils::checks;
 use crate::utils::id::user_id_to_i64;
 use crate::{responses, Context, Error};
+use poise::serenity_prelude as serenity;
 
 #[derive(poise::ChoiceParameter)]
 enum ResponseChoice {
@@ -38,12 +39,13 @@ pub async fn respond(
     responses::success(ctx, "Response recorded.").await
 }
 
+/// Responds to a D&D session (DM only), can respond for others
 #[poise::command(slash_command, check = "checks::dm_check")]
 pub async fn dmrespond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
-    #[description = "Are you going?"] response: ResponseChoice,
     #[description = "Who is going? Defaults to you."] respondee: Option<serenity::User,>,
+    #[description = "Are you going?"] response: ResponseChoice,
 ) -> Result<(), Error> {
     if !session_ops::does_session_exist(ctx, session_id) {
         return responses::failure(ctx, "Session not found.").await;
