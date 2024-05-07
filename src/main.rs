@@ -23,7 +23,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
 
-async fn on_error(error: poise::FrameworkError<'_, Data, Error>) -> () {
+async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     match error {
         poise::FrameworkError::Setup { error, .. } => {
             panic!("Failed to build framework: {:?}", error)
