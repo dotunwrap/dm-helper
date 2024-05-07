@@ -44,8 +44,8 @@ pub async fn respond(
 pub async fn dmrespond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
-    #[description = "Who is going? Defaults to you."] respondee: Option<serenity::User,>,
-    #[description = "Are you going?"] response: ResponseChoice,
+    #[description = "Who is going? Defaults to you."] respondee: Option<serenity::User>,
+    #[description = "Are they going?"] response: ResponseChoice,
 ) -> Result<(), Error> {
     if !session_ops::does_session_exist(ctx, session_id) {
         return responses::failure(ctx, "Session not found.").await;
