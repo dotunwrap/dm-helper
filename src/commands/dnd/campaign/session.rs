@@ -288,7 +288,7 @@ pub async fn list(
 
         embeds.push(
             serenity::CreateEmbed::default()
-                .title(format!("{}", campaign_name))
+                .title(campaign_name.to_string())
                 .field("Location", location, true)
                 .field("Status", status, true)
                 .field("Date/Time", scheduled_date, false)
