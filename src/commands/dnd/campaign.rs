@@ -275,24 +275,25 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
     let guild_id = guild_id_to_i64(get_guild_id(ctx).await).await;
     let mut embeds: Vec<serenity::CreateEmbed> = vec![];
 
-    match campaign_ops::get_campaigns(ctx, guild_id) {
-        Some(campaigns) => campaigns.into_iter().for_each(|campaign| {
+    if let Some(campaigns) = campaign_ops::get_campaigns(ctx, guild_id) {
+        campaigns.into_iter().for_each(|campaign| {
             embeds.push(
                 serenity::CreateEmbed::new()
                     .title(&campaign.name)
-                    .url(match campaign.link {
-                        Some(link) => link,
-                        None => String::from(""),
+                    .url(if let Some(link) = campaign.link {
+                        link
+                    } else {
+                        String::from("")
                     })
-                    .description(match campaign.description {
-                        Some(description) => description,
-                        None => String::from(""),
+                    .description(if let Some(description) = campaign.description {
+                        description
+                    } else {
+                        String::from("")
                     })
                     .field("DM", format!("<@{}>", campaign.dm_id), false),
             )
-        }),
-        None => {}
-    };
+        });
+    }
 
     responses::paginate_embeds(ctx, embeds).await
 }

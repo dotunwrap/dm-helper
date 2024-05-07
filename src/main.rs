@@ -53,11 +53,8 @@ async fn on_event(
     _framework: poise::FrameworkContext<'_, Data, Error>,
     _data: &Data,
 ) -> Result<(), Error> {
-    match event {
-        serenity::FullEvent::Ready { data_about_bot } => {
-            println!("{} is connected!", data_about_bot.user.name);
-        }
-        _ => {}
+    if let serenity::FullEvent::Ready { data_about_bot } = event {
+        println!("{} is connected!", data_about_bot.user.name);
     }
 
     Ok(())

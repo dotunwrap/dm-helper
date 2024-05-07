@@ -258,13 +258,14 @@ pub async fn list(
         let mut going: Vec<String> = vec![];
         let mut not_going: Vec<String> = vec![];
 
-        match response_ops::get_responses_for_session(ctx, session.id) {
-            Some(responses) => responses.into_iter().for_each(|r| match r.response {
-                1 => going.push(format!("<@{}>", r.respondee_id)),
-                0 => not_going.push(format!("<@{}>", r.respondee_id)),
-                _ => (),
-            }),
-            None => (),
+        if let Some(responses) = response_ops::get_responses_for_session(ctx, session.id) {
+            responses.into_iter().for_each(|r| {
+                if r.response == 1 {
+                    going.push(format!("<@{}>", r.respondee_id));
+                } else if r.response == 0 {
+                    not_going.push(format!("<@{}>", r.respondee_id));
+                }
+            });
         }
 
         let status = match session.status {
