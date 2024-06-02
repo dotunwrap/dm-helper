@@ -39,12 +39,12 @@ pub async fn respond(
     responses::success(ctx, "Response recorded.").await
 }
 
-/// Responds to a D&D session (DM only), can respond for others
+/// Allows a DM to respond to a D&D session for a player (DM only)
 #[poise::command(slash_command, check = "checks::dm_check")]
 pub async fn dmrespond(
     ctx: Context<'_>,
     #[description = "The ID of the session you're responding to"] session_id: i32,
-    #[description = "Who is going? Defaults to you."] respondee: Option<serenity::User>,
+    #[description = "Who are you responding for?"] respondee: serenity::User,
     #[description = "Are they going?"] response: ResponseChoice,
 ) -> Result<(), Error> {
     if !session_ops::does_session_exist(ctx, session_id) {
@@ -56,14 +56,9 @@ pub async fn dmrespond(
         ResponseChoice::No => 0,
     };
 
-    let respondee_id = match respondee {
-        Some(respondee) => respondee.id,
-        None => ctx.author().id,
-    };
-
     let new_response = NewResponse {
         session_id,
-        respondee_id: user_id_to_i64(respondee_id).await,
+        respondee_id: user_id_to_i64(respondee.id).await,
         response,
         responded_date: chrono::Utc::now().naive_utc(),
     };
