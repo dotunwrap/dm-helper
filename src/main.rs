@@ -1,4 +1,3 @@
-#![warn(clippy::str_to_string)]
 #[macro_use]
 extern crate diesel;
 
@@ -23,7 +22,7 @@ type Error = Box<dyn std::error::Error + Send + Sync>;
 type Context<'a> = poise::Context<'a, Data, Error>;
 type ApplicationContext<'a> = poise::ApplicationContext<'a, Data, Error>;
 
-async fn on_error(error: poise::FrameworkError<'_, Data, Error>) -> () {
+async fn on_error(error: poise::FrameworkError<'_, Data, Error>) {
     match error {
         poise::FrameworkError::Setup { error, .. } => {
             panic!("Failed to build framework: {:?}", error)
@@ -53,11 +52,8 @@ async fn on_event(
     _framework: poise::FrameworkContext<'_, Data, Error>,
     _data: &Data,
 ) -> Result<(), Error> {
-    match event {
-        serenity::FullEvent::Ready { data_about_bot } => {
-            println!("{} is connected!", data_about_bot.user.name);
-        }
-        _ => {}
+    if let serenity::FullEvent::Ready { data_about_bot } = event {
+        println!("{} is connected!", data_about_bot.user.name);
     }
 
     Ok(())

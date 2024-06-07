@@ -73,7 +73,7 @@ pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    if ctx.guild().unwrap().roles.get(&dnd_role_id).is_none() {
+    if !ctx.guild().unwrap().roles.contains_key(&dnd_role_id) {
         ctx.reply(format!(
             "Role ID `{}` does not exist and cannot be used for the D&D role.",
             dnd_role_id
@@ -92,7 +92,7 @@ pub async fn settings(ctx: ApplicationContext<'_>) -> Result<(), Error> {
         return Ok(());
     }
 
-    if ctx.guild().unwrap().roles.get(&dm_role_id).is_none() {
+    if !ctx.guild().unwrap().roles.contains_key(&dm_role_id) {
         ctx.reply(format!(
             "Role ID `{}` does not exist and cannot be used for the DM role.",
             dm_role_id
