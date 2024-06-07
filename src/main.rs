@@ -1,4 +1,3 @@
-#![warn(clippy::str_to_string)]
 #[macro_use]
 extern crate diesel;
 
