@@ -280,15 +280,13 @@ pub async fn list(ctx: Context<'_>) -> Result<(), Error> {
             embeds.push(
                 serenity::CreateEmbed::new()
                     .title(&campaign.name)
-                    .url(if let Some(link) = campaign.link {
-                        link
-                    } else {
-                        String::from("")
+                    .url(match campaign.link {
+                        Some(link) => link,
+                        None => String::from(""),
                     })
-                    .description(if let Some(description) = campaign.description {
-                        description
-                    } else {
-                        String::from("")
+                    .description(match campaign.description {
+                        Some(description) => description,
+                        None => String::from(""),
                     })
                     .field("DM", format!("<@{}>", campaign.dm_id), false),
             )
