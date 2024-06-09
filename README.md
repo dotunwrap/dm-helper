@@ -18,6 +18,8 @@ If you'd like to add this bot to your server, you can [CLICK HERE](https://disco
 
 ## Development
 
+[![Documentation](https://img.shields.io/badge/documentation-visit-blue)](https://dotunwrap.github.io/dm-helper/)
+
 In order to work on this project, you will need to run the following commands:
 
 ```bash
