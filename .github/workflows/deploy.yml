@@ -10,6 +10,9 @@ jobs:
     steps:
       - name: "Checkout repo"
         uses: actions/checkout@v4
+      - name: "Update Rust toolchain"
+        run: |
+          rustup update
       - name: "Install shuttle.rs CLI"
         run: |
           curl -L --proto '=https' --tlsv1.2 -sSf https://raw.githubusercontent.com/cargo-bins/cargo-binstall/main/install-from-binstall-release.sh | bash
